@@ -1,5 +1,5 @@
+# -*- coding: utf-8 -*-
 import sys
-from typing import List, Tuple, Dict
 from random import choice
 from math import sqrt, atan
 from glob import glob
@@ -12,15 +12,15 @@ sys.setrecursionlimit(10000)
 SOURCES = sorted(glob('src/*'))
 
 
-def height(image: np.ndarray) -> int:
+def height(image):
     return image.shape[0]
 
 
-def width(image: np.ndarray) -> int:
+def width(image):
     return image.shape[1]
 
 
-def brightness(image: np.ndarray, change: int) -> np.ndarray:
+def brightness(image, change):
     h = height(image)
     w = width(image)
     corrected = image.copy()
@@ -36,7 +36,7 @@ def brightness(image: np.ndarray, change: int) -> np.ndarray:
     return corrected
 
 
-def labelling(image: np.ndarray) -> np.ndarray:
+def labelling(image):
     def fill(x, y):
         if (labels[y][x] == 0) and (image[y][x] == 255):
             labels[y][x] = L
@@ -60,7 +60,7 @@ def labelling(image: np.ndarray) -> np.ndarray:
     return labels
 
 
-def grayscale(image: np.ndarray) -> np.ndarray:
+def grayscale(image):
     h = height(image)
     w = width(image)
     gs = np.zeros((h, w), dtype=np.int32)
@@ -70,7 +70,7 @@ def grayscale(image: np.ndarray) -> np.ndarray:
     return gs
 
 
-def binarize(image: np.ndarray, threshold: int) -> np.ndarray:
+def binarize(image, threshold):
     h = height(image)
     w = width(image)
     binimage = np.zeros((h, w), dtype=np.uint8)
@@ -81,11 +81,11 @@ def binarize(image: np.ndarray, threshold: int) -> np.ndarray:
     return binimage
 
 
-def squares(labels: np.ndarray) -> Counter:
+def squares(labels):
     return Counter(labels.flat)
 
 
-def is_inner(labels: np.ndarray, x: int, y: int) -> bool:
+def is_inner(labels, x, y):
     label = labels[y][x]
     neighbours = {(row_index, line_index) for row_index in range(x-1, x+2)
                   for line_index in range(y-1, y+2)}
@@ -93,7 +93,7 @@ def is_inner(labels: np.ndarray, x: int, y: int) -> bool:
     return all(labels[y][x] == label for x, y in neighbours)
 
 
-def perimeters(labels: np.ndarray, squares_cnt: Counter) -> Dict[int, int]:
+def perimeters(labels, squares_cnt):
     inners_cnt = Counter()
     for y in range(1, height(labels)-1):
         for x in range(1, width(labels)-1):
@@ -102,19 +102,19 @@ def perimeters(labels: np.ndarray, squares_cnt: Counter) -> Dict[int, int]:
     return {key: value-inners_cnt[key] for key, value in squares_cnt.items()}
 
 
-def compactness(square: float, perimeter: float) -> float:
+def compactness(square, perimeter):
     if square:
         return perimeter**2/square
     else:
         return 0
 
 
-def compactnesses(sqs: Counter, perims: Counter) -> Dict[int, float]:
+def compactnesses(sqs, perims):
     return {int(label): compactness(sqs[label], perims[label])
             for label in sqs}
 
 
-def mass_center(labels: np.ndarray, figure_class: int) -> Tuple[float, float]:
+def mass_center(labels, figure_class):
     square = squares(labels)[figure_class]
     x_center = 0
     y_center = 0
@@ -126,8 +126,7 @@ def mass_center(labels: np.ndarray, figure_class: int) -> Tuple[float, float]:
     return (x_center/square, y_center/square)
 
 
-def dcm(i: int, j: int, labels: np.ndarray, figure_class: int,
-        mass_center: Tuple[float, float]) -> float:
+def dcm(i, j, labels, figure_class, mass_center):
     m = 0
     for x in range(width(labels)):
         for y in range(height(labels)):
@@ -138,19 +137,19 @@ def dcm(i: int, j: int, labels: np.ndarray, figure_class: int,
     return m
 
 
-def dcm11(labels: np.ndarray, figure_class: int, mass_center) -> float:
+def dcm11(labels, figure_class, mass_center) :
     return dcm(1, 1, labels, figure_class, mass_center)
 
 
-def dcm02(labels: np.ndarray, figure_class: int, mass_center) -> float:
+def dcm02(labels, figure_class, mass_center):
     return dcm(0, 2, labels, figure_class, mass_center)
 
 
-def dcm20(labels: np.ndarray, figure_class: int, mass_center) -> float:
+def dcm20(labels, figure_class, mass_center):
     return dcm(2, 0, labels, figure_class, mass_center)
 
 
-def elongation(m02: float, m11: float, m20: float) -> float:
+def elongation(m02, m11, m20):
     t = sqrt((m20 - m02)**2 + 4*m11**2)
     t2 = (m20 + m02 - t)
     if t2:
@@ -159,7 +158,7 @@ def elongation(m02: float, m11: float, m20: float) -> float:
         return 0
 
 
-def elongations(labels: np.ndarray) -> Dict[int, float]:
+def elongations(labels):
     res = {}
     ls = set(labels.flat)
     for label in ls:
@@ -171,7 +170,7 @@ def elongations(labels: np.ndarray) -> Dict[int, float]:
     return res
 
 
-def orientation(labels: np.ndarray, figure_class: int) -> float:
+def orientation(labels, figure_class):
     m20 = dcm20(labels, figure_class)
     m02 = dcm02(labels, figure_class)
     m11 = dcm11(labels, figure_class)
@@ -185,7 +184,7 @@ ParamVector = namedtuple('ParamVector',
 euclidean = distance.euclidean
 
 
-def init_medians(vectors: List[ParamVector], k: int) -> List[ParamVector]:
+def init_medians(vectors, k):
     medians = []
     while k > 0:
         vector = choice(vectors)
@@ -197,8 +196,7 @@ def init_medians(vectors: List[ParamVector], k: int) -> List[ParamVector]:
     return medians
 
 
-def recalculate_medians(clusters: defaultdict,
-                        medians: List[ParamVector]) -> List[ParamVector]:
+def recalculate_medians(clusters, medians):
     for index, vectors in clusters.items():
         square = median((v.square for v in vectors))
         perimeter = median((v.perimeter for v in vectors))
@@ -210,8 +208,7 @@ def recalculate_medians(clusters: defaultdict,
     return medians
 
 
-def create_clusters(medians: List[ParamVector],
-                    vectors: List[ParamVector]) -> defaultdict:
+def create_clusters(medians, vectors):
     clusters = defaultdict(set)
     for vector in vectors:
         d = [(i, euclidean(m, vector)) for i, m in enumerate(medians)]
@@ -220,7 +217,7 @@ def create_clusters(medians: List[ParamVector],
     return clusters
 
 
-def k_medians(vectors: List[ParamVector], k: int) -> defaultdict:
+def k_medians(vectors, k):
     medians = init_medians(vectors, k)
     clusters = create_clusters(medians, vectors)
     for _ in range(9):
